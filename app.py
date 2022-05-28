@@ -100,7 +100,7 @@ def main():
     st.set_page_config(page_icon="🐒", page_title="Marmoset Streamlit")
 
     st.image(
-        "http://cdn.sci-news.com/images/enlarge8/image_9608e-Common-Marmoset.jpg",
+        "./marmoset.jpeg",
         width=300,
     )
 
