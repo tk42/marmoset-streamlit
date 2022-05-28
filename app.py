@@ -1,7 +1,8 @@
 import io
 import numpy as np
-import streamlit as st
 import pandas as pd
+import streamlit as st
+from numpy.lib.stride_tricks import sliding_window_view
 
 FILE_DATA_INDEX_START = 1
 FILE_DATA_INDEX_END = 14
@@ -9,30 +10,30 @@ ANALYSIS_DATA_INDEX_HEADER = 15
 ANALYSIS_DATA_INDEX_START = 16
 
 
-def draw_fig_cumsum(st: st, df: pd.DataFrame):
-    file_container = st.expander("Check the table data")
+def calc_dist(df: pd.DataFrame):
     dx, dy, dz = map(np.diff, [df["Xcm"], df["Ycm"], df["Zcm"]])
-    d = np.sqrt(dx**2 + dy**2 + dz**2)
+    return np.sqrt(dx**2 + dy**2 + dz**2)
+
+
+def draw_fig_cumsum(df: pd.DataFrame):
+    d = calc_dist(df)
 
     df["cumsum"] = np.insert(d.cumsum(), 0, 0)
     df["datetime"] = pd.to_datetime(df["date time"], format="%Y-%m-%d %H:%M:%S.000")
     df.set_index("datetime", inplace=True)
 
-    file_container.write(df["cumsum"])
     fig = df["cumsum"].plot(grid=True)
-    st.plotly_chart(fig.figure)
+    return df["cumsum"], fig
 
 
-def draw_fig_activities(st: st, df: pd.DataFrame, bins: int):
-    file_container = st.expander("Check the table data")
-    dx, dy, dz = map(np.diff, [df["Xcm"], df["Ycm"], df["Zcm"]])
-    d = np.sqrt(dx**2 + dy**2 + dz**2)
+def draw_fig_activities(df: pd.DataFrame, bins: int, sec: int):
+    d = calc_dist(df)
 
-    df["diff"] = np.insert(d, 0, 0)
+    summed_within_secs = list(map(sum, sliding_window_view(d, sec)))
 
-    file_container.write(df["diff"])
-    fig = df["diff"].plot.hist(bins=bins, grid=True)
-    st.plotly_chart(fig.figure)
+    histogram = pd.Series(summed_within_secs, name="Histogram").value_counts(bins=bins)
+    fig = histogram.plot.bar(grid=True, tick_label=histogram.index)
+    return histogram, fig
 
 
 def format_header(header: io.BytesIO):
@@ -100,7 +101,7 @@ def main():
 
     st.title("Marmoset Streamlit")
 
-    st.write("This app shows your marmoset acitivies! The size specification is as below.")
+    st.write("This app shows the marmoset's acitivies! The cage size specification is as below.")
 
     st.markdown(
         """
@@ -128,11 +129,18 @@ def main():
     st.markdown(header_data)
 
     st.subheader("Cumsumed trajectory")
-    draw_fig_cumsum(st, df)
+    df_cumsum, fig = draw_fig_cumsum(df)
+    file_container = st.expander("Check the table data")
+    file_container.write(df_cumsum)
+    st.plotly_chart(fig.figure)
 
     st.subheader("Activities histogram")
-    bins = st.slider("Pick a cluster number", 2, 50)
-    draw_fig_activities(st, df, bins)
+    bins = st.number_input("Pick a cluster number", min_value=2, max_value=50)
+    sec = st.number_input("Pick an interval secs", min_value=1, max_value=300)
+    df_hist, fig = draw_fig_activities(df, bins, sec)
+    file_container = st.expander("Check the table data")
+    file_container.write(df_hist)
+    st.plotly_chart(fig.figure)
 
 
 if __name__ == "__main__":
