@@ -2,11 +2,6 @@ import io
 import numpy as np
 import streamlit as st
 import pandas as pd
-import matplotlib.dates as mdates
-import seaborn as sns
-
-sns.set()
-
 
 FILE_DATA_INDEX_START = 1
 FILE_DATA_INDEX_END = 14
@@ -24,12 +19,11 @@ def draw_fig_cumsum(st: st, df: pd.DataFrame):
     df.set_index("datetime", inplace=True)
 
     file_container.write(df["cumsum"])
-    fig2 = df["cumsum"].plot()
-    fig2.xaxis.set_major_formatter(mdates.DateFormatter("%m/%d %H:%M"))
-    st.pyplot(fig=fig2.figure, clear_figure=True)
+    fig = df["cumsum"].plot(grid=True)
+    st.plotly_chart(fig.figure)
 
 
-def draw_fig_activities(st: st, df: pd.DataFrame, bins: int, ymax: int):
+def draw_fig_activities(st: st, df: pd.DataFrame, bins: int):
     file_container = st.expander("Check the table data")
     dx, dy, dz = map(np.diff, [df["Xcm"], df["Ycm"], df["Zcm"]])
     d = np.sqrt(dx**2 + dy**2 + dz**2)
@@ -37,8 +31,8 @@ def draw_fig_activities(st: st, df: pd.DataFrame, bins: int, ymax: int):
     df["diff"] = np.insert(d, 0, 0)
 
     file_container.write(df["diff"])
-    fig = df["diff"].plot.hist(bins=bins, ylim=(0, ymax))
-    st.pyplot(fig=fig.figure, clear_figure=True)
+    fig = df["diff"].plot.hist(bins=bins, grid=True)
+    st.plotly_chart(fig.figure)
 
 
 def format_header(header: io.BytesIO):
@@ -138,8 +132,7 @@ def main():
 
     st.subheader("Activities histogram")
     bins = st.slider("Pick a cluster number", 2, 50)
-    ymax = st.slider("Pick a maximum of y", 1000, 50000)
-    draw_fig_activities(st, df, bins, ymax)
+    draw_fig_activities(st, df, bins)
 
 
 if __name__ == "__main__":
