@@ -2,6 +2,7 @@ import io
 import numpy as np
 import pandas as pd
 import streamlit as st
+import plotly.express as px
 from numpy.lib.stride_tricks import sliding_window_view
 
 FILE_DATA_INDEX_START = 1
@@ -128,14 +129,25 @@ def main():
     st.subheader("Experiment info.")
     st.markdown(header_data)
 
+    st.subheader("Descriptive statistics")
+    st.markdown(df["Xcm"].describe())
+    st.markdown(df["Ycm"].describe())
+    st.markdown(df["Zcm"].describe())
+
     st.subheader("Cumsumed trajectory")
     df_cumsum, fig = draw_fig_cumsum(df)
     file_container = st.expander("Check the table data")
     file_container.write(df_cumsum)
     st.plotly_chart(fig.figure)
 
+    st.subheader("Three-dimensional trajectory")
+    end = st.select_slider("Pick the end time [sec]", options=[3600, 3600 * 2, 3600 * 3, 3600 * 4, 3600 * 5])
+    fig = px.line_3d(df[:end], x="Xcm", y="Ycm", z="Zcm", markers=True)
+    fig.update_traces(marker=dict(size=3))
+    st.plotly_chart(fig)
+
     st.subheader("Activities histogram")
-    bins = st.number_input("Pick a cluster number", min_value=2, max_value=50)
+    bins = st.number_input("Pick a cluster number", min_value=3, max_value=50)
     sec = st.number_input("Pick an interval secs", min_value=1, max_value=300)
     df_hist, fig = draw_fig_activities(df, bins, sec)
     file_container = st.expander("Check the table data")
