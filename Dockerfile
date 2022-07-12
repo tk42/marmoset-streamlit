@@ -5,4 +5,7 @@ RUN pip3 --disable-pip-version-check --no-cache-dir install -r /tmp/pip-tmp/requ
     && rm -rf /tmp/pip-tmp
 
 COPY . .
+
+EXPOSE 8501
+
 ENTRYPOINT [ "streamlit", "run", "app.py" ]
